@@ -2,7 +2,7 @@
 
 ;(icy-mode 1)
 
-(add-to-list 'load-path "~/.emacs.d/manual")
+(add-to-list 'load-path "~/.emacs.d/site-lisp")
 
 ;; package.el & marmalade
 (require 'package)
