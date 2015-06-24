@@ -3,6 +3,7 @@
 ;(icy-mode 1)
 
 (add-to-list 'load-path "~/.emacs.d/site-lisp")
+(add-to-list 'load-path "~/.emacs.d/site-lisp/coverlay")
 
 ;; package.el & marmalade
 (require 'package)
@@ -362,3 +363,5 @@ the line, to capture multiline input. (This only has effect if
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  )
+
+;;; init.el ends here
