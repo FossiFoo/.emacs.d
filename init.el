@@ -1,20 +1,39 @@
-(setq inferior-lisp-program "/usr/bin/sbcl")
+;;; init --- init ALL the things!
+;;;(setq inferior-lisp-program "/usr/bin/sbcl")
 
-;(icy-mode 1)
+(setq max-specpdl-size 5)  ; default is 1000, reduce the backtrace level
+(setq debug-on-error t)    ; now you should get a backtrace
 
 (add-to-list 'load-path "~/.emacs.d/site-lisp")
 (add-to-list 'load-path "~/.emacs.d/site-lisp/coverlay")
+(add-to-list 'load-path "~/.emacs.d/site-lisp/flowtype-mode")
 
-;; package.el & marmalade
+;; package.el
 (require 'package)
-;; (add-to-list 'package-archives
-;;              '("marmalade" . "http://marmalade-repo.org/packages/"))
 (add-to-list 'package-archives
              '("melpa" . "http://melpa.milkbox.net/packages/") t)
 (package-initialize)
 
+(defvar package-list)
+; list the packages you want
+(setq package-list '(magit android-mode))
 
-(setq magit-last-seen-setup-instructions "1.4.0")
+;; ; list the repositories containing them
+;; (setq package-archives '(("elpa" . "http://tromey.com/elpa/")
+;;                          ("gnu" . "http://elpa.gnu.org/packages/")
+;;                          ("marmalade" . "http://marmalade-repo.org/packages/")))
+
+; fetch the list of packages available
+(unless package-archive-contents
+  (package-refresh-contents))
+
+; install the missing packages
+(dolist (package package-list)
+  (unless (package-installed-p package)
+    (package-install package)))
+
+;; magit
+;; (setq magit-last-seen-setup-instructions "1.4.0")
 (require 'magit)
 
 ;; thing-cmd
@@ -70,7 +89,7 @@
 
 ;;  mode (javascript)
 (add-hook 'js-mode-hook 'js2-minor-mode)
-(add-hook 'js2-mode-hook 'ac-js2-mode)
+;;(add-hook 'js2-mode-hook 'ac-js2-mode)
 
 ;; Let flycheck handle parse errors
 (setq-default js2-show-parse-errors nil)
@@ -84,25 +103,25 @@
 (add-to-list 'auto-mode-alist '("\\.scss$" . sass-mode))
 ;; (eval-after-load 'sass-mode
 ;;             (define-key sass-mode-keymap (kbd "C-c C-x c") 'css-comb))
-(add-hook 'sass-mode 'ac-css-mode-setup)
+;;(add-hook 'sass-mode 'ac-css-mode-setup)
 
 (require 'jsx-mode)
 (add-to-list 'auto-mode-alist '("\\.jsx\\'" . jsx-mode))
 (add-to-list 'auto-mode-alist '("\\.js\\'" . jsx-mode))
 (setq jsx-indent-level 4)
 
-(add-hook 'jsx-mode-hook
-                    (lambda () (auto-complete-mode 1)))
+;; (add-hook 'jsx-mode-hook
+;;                     (lambda () (auto-complete-mode 1)))
 
 ;; Tern js tooling
 (require 'tern)
-(eval-after-load 'tern
-  '(progn
-     (require 'tern-auto-complete)
-     (tern-ac-setup)
+;; (eval-after-load 'tern
+;;   '(progn
+;;      (require 'tern-auto-complete)
+;;      (tern-ac-setup)
 
-     (define-key tern-mode-keymap [(control ?.)] 'tern-find-definition)
-     (define-key tern-mode-keymap [(control ?T)] 'tern-ac-complete)))
+;;      (define-key tern-mode-keymap [(control ?.)] 'tern-find-definition)
+;;      (define-key tern-mode-keymap [(control ?T)] 'tern-ac-complete)))
 
 (add-hook 'js-mode-hook (lambda () (tern-mode t)))
 (add-hook 'js2-mode-hook (lambda () (tern-mode t)))
@@ -120,16 +139,67 @@
 (flycheck-define-checker jsxhint-checker
   "A JSX syntax and style checker based on JSXHint."
 
-  :command ("jsxhint" "-c" "/usr/local/.jsxhintrc" source)
+  :command ("jsxhint" "-c" "/usr/local/.jshintrc" source)
   :error-patterns
   ((error line-start (1+ nonl) ": line " line ", col " column ", " (message) line-end))
   :modes (jsx-mode))
 
-(add-to-list 'flycheck-checkers 'jsxhint-checker)
+(flycheck-define-checker jsx-eslint
+  "A Javascript syntax and style checker using eslint.
 
+See URL `https://github.com/eslint/eslint'."
+  :command ("eslint" "--parser=babel-eslint" "--format=checkstyle"
+            (config-file "--config" flycheck-eslintrc)
+            (option "--rulesdir" flycheck-eslint-rulesdir)
+            "--stdin" "--stdin-filename" source-original)
+  :standard-input t
+  :error-parser flycheck-parse-checkstyle
+  :error-filter (lambda (errors)
+                  (seq-do (lambda (err)
+                            ;; Parse error ID from the error message
+                            (setf (flycheck-error-message err)
+                                  (replace-regexp-in-string
+                                   (rx " ("
+                                       (group (one-or-more (not (any ")"))))
+                                       ")" string-end)
+                                   (lambda (s)
+                                     (setf (flycheck-error-id err)
+                                           (match-string 1 s))
+                                     "")
+                                   (flycheck-error-message err))))
+                          (flycheck-sanitize-errors errors))
+                  errors)
+  :modes (jsx-mode)
+  :next-checkers ((warning . jsxhint-checker)))
+
+(flycheck-define-checker javascript-flow
+    "A JavaScript syntax and style checker using Flow.
+See URL `http://flowtype.org/'."
+    :command ("flow" "status" "--old-output-format" source-original)
+    :error-patterns
+    ((error line-start
+	    (file-name)
+	    ":"
+	    line
+	    ":"
+	    (minimal-match (one-or-more not-newline))
+	    ": "
+	    (message (minimal-match (and (one-or-more anything) "\n")))
+	    line-end))
+    :modes (js-mode js2-mode js3-mode jsx-mode))
+
+(add-to-list 'flycheck-checkers 'jsxhint-checker)
+(add-to-list 'flycheck-checkers 'jsx-eslint)
+(add-to-list 'flycheck-checkers 'javascript-flow t)
+
+(flycheck-add-next-checker 'jsx-eslint 'javascript-flow)
+
+;; flowtype
+(require 'flowtype-mode)
+;; (load "flow-types.el")
+;; (flow_init "/home/cmewes/projects/betty/betty_ordercapture_ui/master/ui/")
 
 ;; android-mode
-(add-to-list 'load-path "/opt/android-mode")
 (require 'android-mode)
 (defcustom android-mode-sdk-dir "/opt/android" "")
 
@@ -137,9 +207,67 @@
 (require 'closure-template-html-mode)
 (add-to-list 'auto-mode-alist '("\\.soy$" . closure-template-html-mode))
 
-;; clojure-mode
-;; (add-to-list 'load-path "/opt/clojure-mode")
+;; clojure stuff
 (require 'clojure-mode)
+(require 'cider)
+(require 'flycheck-clojure)
+(add-to-list 'flycheck-checkers 'clojure-cider-eastwood)
+;; (add-to-list 'flycheck-checkers 'clojure-cider-kibit)
+(eval-after-load 'flycheck '(flycheck-clojure-setup))
+
+(require 'clj-refactor)
+
+(defun my-clojure-mode-hook ()
+    (clj-refactor-mode 1)
+    (yas-minor-mode 1) ; for adding require/use/import statements
+    ;; This choice of keybinding leaves cider-macroexpand-1 unbound
+    (cljr-add-keybindings-with-prefix "C-c C-m"))
+
+(add-hook 'clojure-mode-hook #'my-clojure-mode-hook)
+
+;; eclim
+
+(require 'eclim)
+(global-eclim-mode)
+(require 'eclimd)
+(custom-set-variables
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(blink-cursor-mode nil)
+ '(cider-cljs-lein-repl
+   "(do (require 'cljs.repl.node) (cemerick.piggieback/cljs-repl (cljs.repl.node/repl-env)))")
+ '(column-number-mode t)
+ '(comint-buffer-maximum-size 20000)
+ '(comint-completion-addsuffix t)
+ '(comint-get-old-input (lambda nil "") t)
+ '(comint-input-ignoredups t)
+ '(comint-input-ring-size 5000)
+ '(comint-move-point-for-output nil)
+ '(comint-prompt-read-only nil)
+ '(comint-scroll-show-maximum-output t)
+ '(comint-scroll-to-bottom-on-input t)
+ '(company-dabbrev-downcase nil)
+ '(coverlay:base-path "/home/cmewes/projects/betty/betty_ordercapture_ui/master/")
+ '(coverlay:tested-line-background-color "#eeffdd")
+ '(coverlay:untested-line-background-color "#ffeedd")
+ '(eclim-eclipse-dirs (quote ("~/opt/eclipse")))
+ '(eclim-executable "~/opt/eclipse/eclimd")
+ '(flowtype:base-path
+   "/home/cmewes/projects/betty/betty_ordercapture_ui/master/ui/")
+ '(flycheck-eslintrc "/usr/local/.eslintrc")
+ '(haskell-mode-hook (quote (turn-on-haskell-indentation)))
+ '(protect-buffer-bury-p nil)
+ '(show-paren-mode t)
+ '(sp-base-key-bindings (quote sp))
+ '(sp-override-key-bindings (quote (("M-<backspace>") ("C-M-<backspace>"))))
+ '(tool-bar-mode nil)
+ '(tramp-default-method "ssh"))
+
+;; add the emacs-eclim source
+;; (require 'ac-emacs-eclim-source)
+;; (ac-emacs-eclim-config)
 
 ;;snippets
 (require 'yasnippet)
@@ -147,14 +275,20 @@
 (yas/load-directory "~/.emacs.d/snippets/")
 
 ;; autocomplete
-(require 'auto-complete-config)
-(add-to-list 'ac-dictionary-directories "~/.emacs.d/ac-dict")
-(ac-config-default)
+;; (require 'auto-complete-config)
+;; (add-to-list 'ac-dictionary-directories "~/.emacs.d/ac-dict")
+;; (ac-config-default)
+
+(require 'company)
+(add-hook 'after-init-hook 'global-company-mode)
+
+(global-set-key (kbd "<C-tab>") 'company-complete-common)
+(add-to-list 'company-backends 'company-tern)
+(add-to-list 'company-backends 'company-dabbrev)
 
 ;; (setq yas/prompt-functions '(yas/ido-prompt yas/dropdown-prompt yas/completing-prompt yas/x-prompt yas/no-prompt))
 
 (require 'react-snippets)
-
 
 ;; shell stuff from https://snarfed.org/why_i_run_shells_inside_emacs
 
@@ -231,7 +365,7 @@ comint-replace-by-expanded-history-before-point."
   "When I press enter, jump to the end of the *buffer*, instead of the end of
 the line, to capture multiline input. (This only has effect if
 `comint-eol-on-send' is non-nil."
-  (flet ((end-of-line () (end-of-buffer)))
+  (flet ((end-of-line () (goto-char (point-max))))
     ad-do-it))
 
 ;; not sure why, but comint needs to be reloaded from the source (*not*
@@ -287,9 +421,10 @@ the line, to capture multiline input. (This only has effect if
 ;; stuff
 (prefer-coding-system 'utf-8)
 ;;(set-default-font "-unknown-Inconsolata-normal-normal-normal-*-16-*-*-*-m-0-fontset-auto1")
-(set-default-font "-unknown-Inconsolata-normal-normal-normal-*-16-*-*-*-m-0-iso10646-1")
+(set-default-font "-unknown-Inconsolata-normal-normal-normal-*-14-*-*-*-m-0-iso10646-1")
 
 (desktop-save-mode 1)
+(savehist-mode 1)
 (ffap-bindings)
 (eldoc-mode)
 
@@ -331,32 +466,9 @@ the line, to capture multiline input. (This only has effect if
 (add-to-list 'find-file-not-found-functions 'my-create-non-existent-directory)
 
 (global-set-key "\C-x\C-b" 'buffer-menu)       ; CxCb puts point on buffer list
-(global-set-key "\C-b" 'slime-complete-symbol)
-(global-set-key (kbd "C-M-<backspace>") 'backward-kill-sexp)
-(global-set-key (kbd "M-\\") 'slime-fuzzy-complete-symbol)
+;; (global-set-key (kbd "C-M-<backspace>") 'backward-kill-sexp)
 
-(custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(blink-cursor-mode nil)
- '(column-number-mode t)
- '(comint-buffer-maximum-size 20000)
- '(comint-completion-addsuffix t)
- '(comint-get-old-input (lambda nil "") t)
- '(comint-input-ignoredups t)
- '(comint-input-ring-size 5000)
- '(comint-move-point-for-output nil)
- '(comint-prompt-read-only nil)
- '(comint-scroll-show-maximum-output t)
- '(comint-scroll-to-bottom-on-input t)
- '(coverlay:untested-line-background-color "#ffeedd")
- '(haskell-mode-hook (quote (turn-on-haskell-indentation)))
- '(protect-buffer-bury-p nil)
- '(show-paren-mode t)
- '(tool-bar-mode nil)
- '(tramp-default-method "ssh"))
+
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.

@@ -1,1 +1,0 @@
-(define-package "gerrit-download" "20140828.610" "Show gerrit reviews in a diff buffer." '((emacs "24.0") (magit "20130828.1540")) :url "https://github.com/chmouel/gerrit-download.el" :keywords '("tools" "gerrit" "git"))
