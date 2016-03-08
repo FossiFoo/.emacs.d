@@ -16,7 +16,70 @@
 
 (defvar package-list)
 ; list the packages you want
-(setq package-list '(magit android-mode))
+(setq package-list
+      '(
+	async                 ;;Asynchronous processing in Emacs
+	auto-complete         ;;Auto Completion for GNU Emacs
+	buffer-move           ;;easily swap buffers
+        centered-cursor-mode  ;;cursor stays vertically centered
+	cider                 ;;Clojure Interactive Development Environment that Rocks
+	clj-refactor          ;;A collection of clojure refactoring functions
+	clojure-mode          ;;Major mode for Clojure code
+	company               ;;Modular text completion framework
+	company-restclient    ;;company-mode completion back-end for restclient-mode
+	company-shell         ;;Company mode backend for shell functions
+	company-tern          ;;Tern backend for company-mode
+	dash                  ;;A modern list library for Emacs
+	dash-functional       ;;Collection of useful combinators for Emacs Lisp
+	edn                   ;;Support for reading and writing the edn data format from elisp
+	emacs-eclim           ;;An interface to the Eclipse IDE.
+	epl                   ;;Emacs Package Library
+	exec-path-from-shell  ;;Get environment variables such as $PATH from the shell
+	f	              ;;Modern API for working with files and directories
+	flycheck              ;;On-the-fly syntax checking
+	flycheck-clojure      ;;Flycheck: Clojure support
+	flymake-easy          ;;Helpers for easily building flymake checkers
+	flymake-sass          ;;Flymake handler for sass and scss files
+	fuzzy                 ;;Fuzzy Matching
+	fuzzy-match           ;;fuzzy matching
+	gerrit-download       ;;Show gerrit reviews in a diff buffer.
+	git-commit            ;;Edit Git commit messages
+	groovy-mode           ;;Major mode for Groovy source files
+	highlight-parentheses ;;highlight surrounding parentheses
+	highlight-symbol      ;;automatic and manual symbol highlighting
+	hlinum                ;;Extension for linum.el to highlight current line number
+	hydra                 ;;Make bindings that stick around.
+	inflections           ;;convert english words between singular and plural
+	js2-mode              ;;Improved JavaScript editing mode
+	json-mode             ;;Major mode for editing JSON files
+	json-reformat         ;;Reformatting tool for JSON
+	json-snatcher         ;;Grabs the path to JSON values in a JSON file
+	know-your-http-well   ;;Look up the meaning of HTTP headers, methods, relations, status codes
+	let-alist             ;;Easily let-bind values of an assoc-list by their names
+	magit                 ;;A Git porcelain inside Emacs
+	magit-gerrit          ;;Magit plugin for Gerrit Code Review
+	magit-popup           ;;Define prefix-infix-suffix command combos
+	mic-paren             ;;advanced highlighting of matching parentheses
+	multiple-cursors      ;;Multiple cursors for Emacs.
+	peg                   ;;Parsing Expression Grammars in Emacs Lisp
+	pkg-info              ;;Information about packages
+	popup                 ;;Visual Popup User Interface
+	queue                 ;;Queue data structure
+	rainbow-mode          ;;Colorize color names in buffers
+	react-snippets        ;;Yasnippets for React
+	restclient            ;;An interactive HTTP client for Emacs
+	s                     ;;The long lost Emacs string manipulation library.
+	seq                   ;;Sequence manipulation functions
+	smartparens           ;;Automatic insertion, wrapping and paredit-like navigation with user defined pairs.
+	spinner               ;;Add spinners and progress-bars to the mode-line for ongoing operations
+	tern                  ;;Tern-powered JavaScript integration
+        undo-tree             ;;Treat undo history as a tree
+	web-completion-data   ;;Shared completion data for ac-html and company-web
+	web-mode              ;;major mode for editing web templates
+	with-editor           ;;Use the Emacsclient as $EDITOR
+	yaml-mode             ;;Major mode for editing YAML files
+	yasnippet             ;;Yet another snippet extension for Emacs.
+	))
 
 ;; ; list the repositories containing them
 ;; (setq package-archives '(("elpa" . "http://tromey.com/elpa/")
@@ -33,7 +96,6 @@
     (package-install package)))
 
 ;; magit
-;; (setq magit-last-seen-setup-instructions "1.4.0")
 (require 'magit)
 
 ;; thing-cmd
@@ -51,6 +113,9 @@
 
 ;; line numbers
 (global-linum-mode)
+
+(require 'hlinum)
+(hlinum-activate)
 
 ;; whitespace-mode
 (and
@@ -85,11 +150,11 @@
  (smartparens-global-mode))
 
 ;; flycheck
+(require 'flycheck)
 (add-hook 'after-init-hook #'global-flycheck-mode)
 
 ;;  mode (javascript)
 (add-hook 'js-mode-hook 'js2-minor-mode)
-;;(add-hook 'js2-mode-hook 'ac-js2-mode)
 
 ;; Let flycheck handle parse errors
 (setq-default js2-show-parse-errors nil)
@@ -105,10 +170,10 @@
 ;;             (define-key sass-mode-keymap (kbd "C-c C-x c") 'css-comb))
 ;;(add-hook 'sass-mode 'ac-css-mode-setup)
 
-(require 'jsx-mode)
-(add-to-list 'auto-mode-alist '("\\.jsx\\'" . jsx-mode))
-(add-to-list 'auto-mode-alist '("\\.js\\'" . jsx-mode))
-(setq jsx-indent-level 4)
+;; (require 'jsx-mode)
+;; (add-to-list 'auto-mode-alist '("\\.jsx\\'" . jsx-mode))
+;; (add-to-list 'auto-mode-alist '("\\.js\\'" . jsx-mode))
+;; (setq jsx-indent-level 4)
 
 ;; (add-hook 'jsx-mode-hook
 ;;                     (lambda () (auto-complete-mode 1)))
@@ -125,7 +190,7 @@
 
 (add-hook 'js-mode-hook (lambda () (tern-mode t)))
 (add-hook 'js2-mode-hook (lambda () (tern-mode t)))
-(add-hook 'jsx-mode-hook (lambda () (tern-mode t)))
+;; (add-hook 'jsx-mode-hook (lambda () (tern-mode t)))
 
 (defun delete-tern-process ()
   (interactive)
@@ -133,16 +198,6 @@
 
 ;; coverage in lcov format
 (require 'coverlay)
-
-;; JSX flycheck via https://truongtx.me/2014/03/10/emacs-setup-jsx-mode-and-jsx-syntax-checking/
-(require 'flycheck)
-(flycheck-define-checker jsxhint-checker
-  "A JSX syntax and style checker based on JSXHint."
-
-  :command ("jsxhint" "-c" "/usr/local/.jshintrc" source)
-  :error-patterns
-  ((error line-start (1+ nonl) ": line " line ", col " column ", " (message) line-end))
-  :modes (jsx-mode))
 
 (flycheck-define-checker jsx-eslint
   "A Javascript syntax and style checker using eslint.
@@ -169,8 +224,7 @@ See URL `https://github.com/eslint/eslint'."
                                    (flycheck-error-message err))))
                           (flycheck-sanitize-errors errors))
                   errors)
-  :modes (jsx-mode)
-  :next-checkers ((warning . jsxhint-checker)))
+  :modes (js2-mode))
 
 (flycheck-define-checker javascript-flow
     "A JavaScript syntax and style checker using Flow.
@@ -186,9 +240,8 @@ See URL `http://flowtype.org/'."
 	    ": "
 	    (message (minimal-match (and (one-or-more anything) "\n")))
 	    line-end))
-    :modes (js-mode js2-mode js3-mode jsx-mode))
+    :modes (js-mode js2-mode js3-mode))
 
-(add-to-list 'flycheck-checkers 'jsxhint-checker)
 (add-to-list 'flycheck-checkers 'jsx-eslint)
 (add-to-list 'flycheck-checkers 'javascript-flow t)
 
@@ -273,11 +326,6 @@ See URL `http://flowtype.org/'."
 (require 'yasnippet)
 (yas-global-mode 1)
 (yas/load-directory "~/.emacs.d/snippets/")
-
-;; autocomplete
-;; (require 'auto-complete-config)
-;; (add-to-list 'ac-dictionary-directories "~/.emacs.d/ac-dict")
-;; (ac-config-default)
 
 (require 'company)
 (add-hook 'after-init-hook 'global-company-mode)
