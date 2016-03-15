@@ -7,7 +7,7 @@
 (require 'flycheck)                ; error display
 (require 'eldoc)                   ; type at pos display
 (require 'tabulated-list)          ; To display statistics
-(require 'company)          ; for autocomplete
+(require 'company)                 ; for autocomplete
 
 (require 'json)                    ; parsing util
 
@@ -31,33 +31,6 @@
   :group 'flowtype)
 
 
-;; flycheck
-
-(defun flowtype//column-number-at-pos (pos)
-  "column number at pos"
-  (save-excursion (goto-char pos) (current-column)))
-
-(with-eval-after-load 'flycheck
-  (flycheck-define-command-checker 'javascript-flowtype
-    "A JavaScript syntax and style checker using Flow."
-    :command '("flow" "status" "--old-output-format")
-    :error-patterns
-    '((error line-start
-             (file-name)
-             ":"
-             line
-             ":"
-             column;(minimal-match (one-or-more not-newline))
-             ","
-             (minimal-match (one-or-more not-newline))
-             ": "
-             (message (minimal-match (and (one-or-more anything) "\n")))
-             line-end))
-    :modes '(flowtype-mode))
-
-  (add-to-list 'flycheck-checkers 'javascript-flowtype))
-
-
 ;; helper
 
 (defmacro flowtype|measure-time (&rest body)
@@ -77,9 +50,9 @@
 (defun flowtype//call-flow-on-current-buffer (&rest args)
   "Calls flow with args on the current buffer, returns the result."
   (flowtype|measure-time
-   (let ((buf (generate-new-buffer flowtype:buffer-name)))
+   (let* ((buf (generate-new-buffer flowtype:buffer-name)))
      (unwind-protect
-         (let* ((_ (message "flowtype: calling flow with %s" args))
+         (let* ((_ (message "flowtype: calling flow %s with %s" default-directory args))
                 (result (apply 'call-process-region (point-min) (point-max) "flow" nil buf nil args))
                (output (with-current-buffer buf (buffer-string))))
            (when (not (= result 0))
@@ -97,8 +70,10 @@
                               (let ((output (with-current-buffer (process-buffer process) (buffer-string))))
                                 (kill-buffer (process-buffer process))
                                 (funcall result-handler output)))))
-    (process-send-region process (point-min) (point-max))
-    (process-send-eof process)))
+    (when (process-live-p process)
+      (with-demoted-errors "flowtype: error calling flow: %s"
+          (process-send-region process (point-min) (point-max))
+          (process-send-eof process)))))
 
 (defun flowtype//json-flow-call (&rest args)
   "Calls flow on the current buffer passing --json, parses the result."
@@ -113,11 +88,55 @@
         (handler (lambda (output) (funcall result-handler (json-read-from-string output)))))
     (apply #'flowtype//call-flow-on-current-buffer-async handler args)))
 
+(defun flowtype//column-number-at-pos (pos)
+  "column number at pos"
+  (save-excursion (goto-char pos) (current-column)))
+
 (defun flowtype//pos-to-flow-location (pos)
   "Returns a list of (line col) for pos in the current buffer."
   (let ((line (line-number-at-pos pos))
         (col (1+ (flowtype//column-number-at-pos pos))))
     (list (number-to-string line) (number-to-string col))))
+
+
+
+;; flycheck
+
+(defun flowtype//fc-convert-part (error-part checker counter)
+  (message "part %s" error-part)
+  (let* ((desc (cdr (assoc 'descr error-part)))
+         (line (cdr (assoc 'line error-part)))
+         (col  (cdr (assoc 'start error-part))))
+    (flycheck-error-new-at line col 'error desc :checker checker :id counter)))
+
+(defun flowtype//fc-convert-error (error checker counter)
+  "Return a list of errors from ERROR."
+  (let* ((msg-parts (cdr (assoc 'message error))))
+    (mapcar (lambda (part)
+              (flowtype//fc-convert-part part checker counter))
+            msg-parts)))
+
+(defun flowtype//parse-status-errors (output checker buffer)
+  "Parse flow status errors in OUTPUT."
+  (let* ((json (json-read-from-string output))
+         (errors (cdr (assoc 'errors json)))
+         (counter 0)
+         (converted-errs (mapcar (lambda (err)
+                                   (setq counter (1+ counter))
+                                   (flowtype//fc-convert-error err checker (number-to-string counter)))
+                                 errors))
+         (errs (apply #'append converted-errs)))
+    ;; (message "done: %s" errs)
+    errs))
+
+(with-eval-after-load 'flycheck
+  (flycheck-define-command-checker 'javascript-flowtype
+    "A JavaScript syntax and style checker using Flow."
+    :command '("flow" "status" "--json")
+    :error-parser #'flowtype//parse-status-errors
+    :modes '(flowtype-mode))
+
+  (add-to-list 'flycheck-checkers 'javascript-flowtype))
 
 
 ;; commands
@@ -161,10 +180,10 @@
 
 (defun flowtype//eldoc-show-type-info (data)
   "Shows the passed type info using eldoc."
-  (let* ((type (cdr (assq 'type data)))
-         (_ (message "flowtype: type %s" type)))
+  (let* ((type (cdr (assq 'type data))))
+    (message "flowtype: type %s" type)
     (when (not (equal "(unknown)" type))
-      (eldoc-message (cdr (assq 'type data))))))
+      (eldoc-message type))))
 
 (defun flowtype/eldoc-show-type-at-point ()
   "Shows type at point."
@@ -248,6 +267,7 @@
 ;; coverage overlays
 
 (defun flowtype//clear-cov-overlays ()
+  (interactive)
   "Clear all flowtype overlays in current buffer."
   (remove-overlays (point-min) (point-max) 'flowtype t))
 
@@ -285,7 +305,7 @@
 (defun flowtype//untyped? (type)
   "True if type of TYPE is \"\" or any."
   (let* ((typename (cdr (assoc 'type type))))
-    (message "type: %s" typename)
+    ;; (message "type: %s" typename)
     (or (string= "any" typename)
         (string= "" typename))))
 
@@ -293,7 +313,7 @@
   "Parse raw TYPES into tuples."
   (let* ((untyped (my-filter #'flowtype//untyped? types))
          (parsed (mapcar #'flowtype//parse-raw-type untyped)))
-    (message "parsed: %s" parsed)
+    ;; (message "parsed: %s" parsed)
     parsed))
 
 (defun flowtype//fetch-coverage (filename)
@@ -328,6 +348,7 @@
   (set (make-local-variable 'eldoc-documentation-function) #'flowtype/eldoc-show-type-at-point)
   (make-local-variable 'flowtype--ast)
   (turn-on-eldoc-mode)
+  (company-mode 1)
   (flycheck-mode 1)
   (flowtype//add-hooks))
 
