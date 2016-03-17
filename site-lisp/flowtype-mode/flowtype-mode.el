@@ -10,6 +10,7 @@
 (require 'company)                 ; for autocomplete
 
 (require 'json)                    ; parsing util
+(require 'dash)                    ; sane list helpers
 
 ;;; Code:
 
@@ -116,7 +117,7 @@
               (flowtype//fc-convert-part part checker counter))
             msg-parts)))
 
-(defun flowtype//parse-status-errors (output checker buffer)
+(defun flowtype//fc-parse-status-errors (output checker buffer)
   "Parse flow status errors in OUTPUT."
   (let* ((json (json-read-from-string output))
          (errors (cdr (assoc 'errors json)))
@@ -129,12 +130,38 @@
     ;; (message "done: %s" errs)
     errs))
 
+(defun flowtype//fc-convert-suggest (header content checker)
+    (message "%s: %s" header content)
+    (let* ((matches (string-match "-\\([^,]\*\\)" header))
+           (offset (string-to-number (match-string 1 header))))
+    (message "%s: %s" offset content)
+    (list (flycheck-error-new-at offset 0 'warning content :checker checker))))
+
+(defun flowtype//fc-parse-suggest (output checker buffer)
+  "Parse diffs in OUTPUT."
+  (let* ((regexp (rx-to-string (rx (and "@@" (submatch (zero-or-more any))))))
+         (_ (message "matches: %s" regexp))
+         (hunks (cdr (split-string output "@@" t)))
+         (suggests (-mapcat (lambda (hunk) (flowtype//fc-convert-suggest (first hunk) (second hunk) checker))
+                           (-partition 2 hunks))))
+    (message "matches: %s" suggests)
+    suggests))
+
 (with-eval-after-load 'flycheck
   (flycheck-define-command-checker 'javascript-flowtype
     "A JavaScript syntax and style checker using Flow."
     :command '("flow" "status" "--json")
-    :error-parser #'flowtype//parse-status-errors
+    :error-parser #'flowtype//fc-parse-status-errors
     :modes '(flowtype-mode))
+
+  (add-to-list 'flycheck-checkers 'javascript-flowtype))
+
+(with-eval-after-load 'flycheck
+  (flycheck-define-checker javascript-flowtype-suggest
+    "A JavaScript syntax and style checker using Flow."
+    :command ("flow" "suggest" source-inplace)
+    :error-parser flowtype//fc-parse-suggest
+    :modes flowtype-mode)
 
   (add-to-list 'flycheck-checkers 'javascript-flowtype))
 
@@ -326,11 +353,12 @@
 (defun flowtype//file-load-callback ()
   "Initialize overlays in buffer after loading."
   (interactive)
-  (let* ((filename (buffer-file-name))
-         (buffer-coverage-data (flowtype//fetch-coverage filename)))
-    (when buffer-coverage-data
-      (message (format "flowtype: coverage for file: %s" filename))
-      (flowtype//overlay-current-buffer-with-list buffer-coverage-data))))
+  (when (eq major-mode 'flowtype-mode)
+    (let* ((filename (buffer-file-name))
+           (buffer-coverage-data (flowtype//fetch-coverage filename)))
+      (when buffer-coverage-data
+        (message (format "flowtype: coverage for file: %s" filename))
+        (flowtype//overlay-current-buffer-with-list buffer-coverage-data)))))
 
 
 ;; mode
