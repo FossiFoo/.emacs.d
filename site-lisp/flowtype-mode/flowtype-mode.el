@@ -104,7 +104,6 @@
 ;; flycheck
 
 (defun flowtype//fc-convert-part (error-part checker counter)
-  (message "part %s" error-part)
   (let* ((desc (cdr (assoc 'descr error-part)))
          (line (cdr (assoc 'line error-part)))
          (col  (cdr (assoc 'start error-part))))
@@ -131,20 +130,20 @@
     errs))
 
 (defun flowtype//fc-convert-suggest (header content checker)
-    (message "%s: %s" header content)
+    ;; (message "%s: %s" header content)
     (let* ((matches (string-match "-\\([^,]\*\\)" header))
            (offset (string-to-number (match-string 1 header))))
-    (message "%s: %s" offset content)
+    ;; (message "%s: %s" offset content)
     (list (flycheck-error-new-at offset 0 'warning content :checker checker))))
 
 (defun flowtype//fc-parse-suggest (output checker buffer)
   "Parse diffs in OUTPUT."
   (let* ((regexp (rx-to-string (rx (and "@@" (submatch (zero-or-more any))))))
-         (_ (message "matches: %s" regexp))
+         ;; (_ (message "matches: %s" regexp))
          (hunks (cdr (split-string output "@@" t)))
          (suggests (-mapcat (lambda (hunk) (flowtype//fc-convert-suggest (first hunk) (second hunk) checker))
                            (-partition 2 hunks))))
-    (message "matches: %s" suggests)
+    ;; (message "matches: %s" suggests)
     suggests))
 
 (with-eval-after-load 'flycheck
@@ -163,7 +162,8 @@
     :error-parser flowtype//fc-parse-suggest
     :modes flowtype-mode)
 
-  (add-to-list 'flycheck-checkers 'javascript-flowtype-suggest))
+  (add-to-list 'flycheck-checkers 'javascript-flowtype-suggest)
+  (flycheck-add-next-checker 'javascript-flowtype 'javascript-flowtype-suggest))
 
 
 ;; commands
