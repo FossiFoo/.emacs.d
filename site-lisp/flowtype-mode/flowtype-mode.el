@@ -163,7 +163,7 @@
     :error-parser flowtype//fc-parse-suggest
     :modes flowtype-mode)
 
-  (add-to-list 'flycheck-checkers 'javascript-flowtype))
+  (add-to-list 'flycheck-checkers 'javascript-flowtype-suggest))
 
 
 ;; commands
