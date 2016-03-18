@@ -1,4 +1,5 @@
 ;;; flowtype-mode.el --- Derived mode for JSX with flow types -*- lexical-binding: t -*-
+;; Package-Requires: ((dash "2.12.1"))
 
 ;;; Commentary:
 ;; Emacs derived mode for flowtype.
@@ -103,29 +104,63 @@
 
 ;; flycheck
 
+(flycheck-define-checker javascript-flowtype-eslint
+  "A Javascript syntax and style checker using eslint.
+
+See URL `https://github.com/eslint/eslint'."
+  :command ("eslint" "--parser=babel-eslint" "--format=checkstyle"
+            (config-file "--config" flycheck-eslintrc)
+            (option "--rulesdir" flycheck-eslint-rulesdir)
+            "--stdin" "--stdin-filename" source-original)
+  :standard-input t
+  :error-parser flycheck-parse-checkstyle
+  :error-filter (lambda (errors)
+                  (seq-do (lambda (err)
+                            ;; Parse error ID from the error message
+                            (setf (flycheck-error-message err)
+                                  (replace-regexp-in-string
+                                   (rx " ("
+                                       (group (one-or-more (not (any ")"))))
+                                       ")" string-end)
+                                   (lambda (s)
+                                     (setf (flycheck-error-id err)
+                                           (match-string 1 s))
+                                     "")
+                                   (flycheck-error-message err))))
+                          (flycheck-sanitize-errors errors))
+                  errors)
+  :modes (flowtype-mode))
+(add-to-list 'flycheck-checkers 'javascript-flowtype-eslint)
+
 (defun flowtype//fc-convert-part (error-part checker counter)
   (let* ((desc (cdr (assoc 'descr error-part)))
          (line (cdr (assoc 'line error-part)))
-         (col  (cdr (assoc 'start error-part))))
-    (flycheck-error-new-at line col 'error desc :checker checker :id counter)))
+         (col  (cdr (assoc 'start error-part)))
+         (path  (cdr (assoc 'path error-part))))
+    (flycheck-error-new-at line col 'error desc :checker checker :id counter :filename path)))
 
-(defun flowtype//fc-convert-error (error checker counter)
+(defun flowtype//fc-convert-error (error checker counter filename)
   "Return a list of errors from ERROR."
-  (let* ((msg-parts (cdr (assoc 'message error))))
-    (mapcar (lambda (part)
-              (flowtype//fc-convert-part part checker counter))
-            msg-parts)))
+  (let* ((msg-parts (cdr (assoc 'message error)))
+         (conv (mapcar (lambda (part)
+                         (flowtype//fc-convert-part part checker counter))
+                       msg-parts)))
+    (when (-any? (lambda (err) (equal (flycheck-error-filename err) filename)) conv)
+      conv)))
 
 (defun flowtype//fc-parse-status-errors (output checker buffer)
   "Parse flow status errors in OUTPUT."
   (let* ((json (json-read-from-string output))
          (errors (cdr (assoc 'errors json)))
-         (counter 0)
-         (converted-errs (mapcar (lambda (err)
-                                   (setq counter (1+ counter))
-                                   (flowtype//fc-convert-error err checker (number-to-string counter)))
-                                 errors))
-         (errs (apply #'append converted-errs)))
+         (counter 1)
+         (errs (-mapcat (lambda (err)
+                          (let* ((conv (flowtype//fc-convert-error err
+                                                                 checker
+                                                                 (number-to-string counter)
+                                                                 (buffer-file-name))))
+                            (when conv (setq counter (1+ counter)))
+                            conv))
+                        errors)))
     ;; (message "done: %s" errs)
     errs))
 
@@ -163,7 +198,8 @@
     :modes flowtype-mode)
 
   (add-to-list 'flycheck-checkers 'javascript-flowtype-suggest)
-  (flycheck-add-next-checker 'javascript-flowtype 'javascript-flowtype-suggest))
+  (flycheck-add-next-checker 'javascript-flowtype 'javascript-flowtype-suggest)
+  (flycheck-add-next-checker 'javascript-flowtype-suggest 'javascript-flowtype-eslint))
 
 
 ;; commands
