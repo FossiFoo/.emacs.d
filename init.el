@@ -1,8 +1,11 @@
 ;;; init --- init ALL the things!
-;;;(setq inferior-lisp-program "/usr/bin/sbcl")
 
-(setq max-specpdl-size 5)  ; default is 1000, reduce the backtrace level
-(setq debug-on-error t)    ; now you should get a backtrace
+;;; Commentary:
+
+;;; Code:
+
+;; (setq max-specpdl-size 5)  ; default is 1000, reduce the backtrace level
+;; (setq debug-on-error nil)    ; now you should get a backtrace
 
 (add-to-list 'load-path "~/.emacs.d/site-lisp")
 (add-to-list 'load-path "~/.emacs.d/site-lisp/coverlay")
@@ -20,11 +23,13 @@
       '(
 	async                 ;;Asynchronous processing in Emacs
 	auto-complete         ;;Auto Completion for GNU Emacs
+        base16-theme          ;;Collection of themes built on combinations of 16 base colors
 	buffer-move           ;;easily swap buffers
         centered-cursor-mode  ;;cursor stays vertically centered
 	cider                 ;;Clojure Interactive Development Environment that Rocks
 	clj-refactor          ;;A collection of clojure refactoring functions
 	clojure-mode          ;;Major mode for Clojure code
+        color-theme           ;;install color themes
 	company               ;;Modular text completion framework
 	company-restclient    ;;company-mode completion back-end for restclient-mode
 	company-shell         ;;Company mode backend for shell functions
@@ -38,11 +43,11 @@
 	f	              ;;Modern API for working with files and directories
 	flycheck              ;;On-the-fly syntax checking
 	flycheck-clojure      ;;Flycheck: Clojure support
-	flymake-easy          ;;Helpers for easily building flymake checkers
-	flymake-sass          ;;Flymake handler for sass and scss files
+        framesize             ;;change the size of frames in Emacs
 	fuzzy                 ;;Fuzzy Matching
 	fuzzy-match           ;;fuzzy matching
 	gerrit-download       ;;Show gerrit reviews in a diff buffer.
+        ggtags                ;;frontend to GNU Global source code tagging system
 	git-commit            ;;Edit Git commit messages
 	groovy-mode           ;;Major mode for Groovy source files
 	highlight-parentheses ;;highlight surrounding parentheses
@@ -50,6 +55,7 @@
 	hlinum                ;;Extension for linum.el to highlight current line number
 	hydra                 ;;Make bindings that stick around.
 	inflections           ;;convert english words between singular and plural
+        jasminejs-mode        ;;A minor mode for manipulating jasmine test files
 	js2-mode              ;;Improved JavaScript editing mode
 	json-mode             ;;Major mode for editing JSON files
 	json-reformat         ;;Reformatting tool for JSON
@@ -69,10 +75,12 @@
 	react-snippets        ;;Yasnippets for React
 	restclient            ;;An interactive HTTP client for Emacs
 	s                     ;;The long lost Emacs string manipulation library.
+        sass-mode             ;;Major mode for editing Sass files
 	seq                   ;;Sequence manipulation functions
 	smartparens           ;;Automatic insertion, wrapping and paredit-like navigation with user defined pairs.
 	spinner               ;;Add spinners and progress-bars to the mode-line for ongoing operations
 	tern                  ;;Tern-powered JavaScript integration
+        theme-changer         ;;Sunrise/Sunset Theme Changer for Emacs
         undo-tree             ;;Treat undo history as a tree
 	web-completion-data   ;;Shared completion data for ac-html and company-web
 	web-mode              ;;major mode for editing web templates
@@ -80,11 +88,6 @@
 	yaml-mode             ;;Major mode for editing YAML files
 	yasnippet             ;;Yet another snippet extension for Emacs.
 	))
-
-;; ; list the repositories containing them
-;; (setq package-archives '(("elpa" . "http://tromey.com/elpa/")
-;;                          ("gnu" . "http://elpa.gnu.org/packages/")
-;;                          ("marmalade" . "http://marmalade-repo.org/packages/")))
 
 ; fetch the list of packages available
 (unless package-archive-contents
@@ -95,8 +98,7 @@
   (unless (package-installed-p package)
     (package-install package)))
 
-;; magit
-(require 'magit)
+;;; Local Things
 
 ;; thing-cmd
 (and
@@ -104,6 +106,26 @@
  (global-set-key (kbd "M-?") 'cycle-thing-region)
  (global-set-key (kbd "M-@") 'cycle-thing-region) ; vs `mark-word'
  (global-set-key (kbd "C-M-?")  'mark-thing))	  ; vs `mark-sexp'
+
+;;; Packaged things
+
+(setq calendar-latitude 53.551086)
+(setq calendar-longitude 9.993682)
+
+(and (require 'color-theme)
+     (require 'theme-changer)
+     (change-theme 'base16-atelierdune-light 'base16-atelierdune-dark))
+
+;;presentation
+(require 'framesize)
+(set-default-font "-unknown-Inconsolata-normal-normal-normal-*-14-*-*-*-m-0-iso10646-1")
+
+;; eldoc
+(add-hook 'emacs-lisp-mode-hook 'turn-on-eldoc-mode)
+(add-hook 'lisp-interaction-mode-hook 'turn-on-eldoc-mode)
+
+;; magit
+(require 'magit)
 
 ;; centered cursor mode
 (and
@@ -120,8 +142,8 @@
 ;; whitespace-mode
 (and
  (require 'whitespace)
- (global-set-key "\C-c_w" 'whitespace-mode)
- (global-set-key "\C-c_t" 'whitespace-toggle-options)
+ (global-set-key "\C-c w" 'whitespace-mode)
+ (global-set-key "\C-c t" 'whitespace-toggle-options)
  (global-set-key "\C-c=w" 'global-whitespace-mode)
  (global-set-key "\C-c=t" 'global-whitespace-toggle-options))
 
@@ -148,6 +170,12 @@
 (and
  (require 'smartparens)
  (smartparens-global-mode))
+
+;; Represent undo-history as an actual tree (visualize with C-x u)
+(and (require 'undo-tree)
+     (setq undo-tree-mode-lighter "")
+     (global-undo-tree-mode))
+
 
 ;; flycheck
 (require 'flycheck)
@@ -179,7 +207,7 @@
 ;;                     (lambda () (auto-complete-mode 1)))
 
 ;; Tern js tooling
-(require 'tern)
+;;(require 'tern)
 ;; (eval-after-load 'tern
 ;;   '(progn
 ;;      (require 'tern-auto-complete)
@@ -188,13 +216,20 @@
 ;;      (define-key tern-mode-keymap [(control ?.)] 'tern-find-definition)
 ;;      (define-key tern-mode-keymap [(control ?T)] 'tern-ac-complete)))
 
-(add-hook 'js-mode-hook (lambda () (tern-mode t)))
-(add-hook 'js2-mode-hook (lambda () (tern-mode t)))
+;;(add-hook 'js-mode-hook (lambda () (tern-mode t)))
+;;(add-hook 'js2-mode-hook (lambda () (tern-mode t)))
 ;; (add-hook 'jsx-mode-hook (lambda () (tern-mode t)))
 
 (defun delete-tern-process ()
   (interactive)
     (delete-process "Tern"))
+
+(require 'jasminejs-mode)
+(add-hook 'js-mode-hook (lambda () (jasminejs-mode)))
+(add-hook 'js2-mode-hook (lambda () (jasminejs-mode)))
+(add-hook 'jasminejs-mode-hook (lambda () (jasminejs-add-snippets-to-yas-snippet-dirs)))
+
+(require 'mocha)
 
 ;; coverage in lcov format
 (require 'coverlay)
@@ -224,7 +259,8 @@ See URL `https://github.com/eslint/eslint'."
                                    (flycheck-error-message err))))
                           (flycheck-sanitize-errors errors))
                   errors)
-  :modes (js2-mode))
+  :modes (js-mode js2-mode flowtype-mode))
+(add-to-list 'flycheck-checkers 'jsx-eslint)
 
 (flycheck-define-checker javascript-flow
     "A JavaScript syntax and style checker using Flow.
@@ -240,21 +276,19 @@ See URL `http://flowtype.org/'."
 	    ": "
 	    (message (minimal-match (and (one-or-more anything) "\n")))
 	    line-end))
-    :modes (js-mode js2-mode js3-mode))
+    :modes (js-mode js2-mode js3-mode flowtype-mode))
 
-(add-to-list 'flycheck-checkers 'jsx-eslint)
 (add-to-list 'flycheck-checkers 'javascript-flow t)
 
 (flycheck-add-next-checker 'jsx-eslint 'javascript-flow)
 
 ;; flowtype
 (require 'flowtype-mode)
-;; (load "flow-types.el")
-;; (flow_init "/home/cmewes/projects/betty/betty_ordercapture_ui/master/ui/")
+(add-to-list 'magic-mode-alist '("/\\* @flow" . flowtype-mode))
 
 ;; android-mode
 (require 'android-mode)
-(defcustom android-mode-sdk-dir "/opt/android" "")
+(defcustom android-mode-sdk-dir "/opt/android" "Android.")
 
 ;; closure-template
 (require 'closure-template-html-mode)
@@ -283,40 +317,6 @@ See URL `http://flowtype.org/'."
 (require 'eclim)
 (global-eclim-mode)
 (require 'eclimd)
-(custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(blink-cursor-mode nil)
- '(cider-cljs-lein-repl
-   "(do (require 'cljs.repl.node) (cemerick.piggieback/cljs-repl (cljs.repl.node/repl-env)))")
- '(column-number-mode t)
- '(comint-buffer-maximum-size 20000)
- '(comint-completion-addsuffix t)
- '(comint-get-old-input (lambda nil "") t)
- '(comint-input-ignoredups t)
- '(comint-input-ring-size 5000)
- '(comint-move-point-for-output nil)
- '(comint-prompt-read-only nil)
- '(comint-scroll-show-maximum-output t)
- '(comint-scroll-to-bottom-on-input t)
- '(company-dabbrev-downcase nil)
- '(coverlay:base-path "/home/cmewes/projects/betty/betty_ordercapture_ui/master/")
- '(coverlay:tested-line-background-color "#eeffdd")
- '(coverlay:untested-line-background-color "#ffeedd")
- '(eclim-eclipse-dirs (quote ("~/opt/eclipse")))
- '(eclim-executable "~/opt/eclipse/eclimd")
- '(flowtype:base-path
-   "/home/cmewes/projects/betty/betty_ordercapture_ui/master/ui/")
- '(flycheck-eslintrc "/usr/local/.eslintrc")
- '(haskell-mode-hook (quote (turn-on-haskell-indentation)))
- '(protect-buffer-bury-p nil)
- '(show-paren-mode t)
- '(sp-base-key-bindings (quote sp))
- '(sp-override-key-bindings (quote (("M-<backspace>") ("C-M-<backspace>"))))
- '(tool-bar-mode nil)
- '(tramp-default-method "ssh"))
 
 ;; add the emacs-eclim source
 ;; (require 'ac-emacs-eclim-source)
@@ -337,6 +337,7 @@ See URL `http://flowtype.org/'."
 ;; (setq yas/prompt-functions '(yas/ido-prompt yas/dropdown-prompt yas/completing-prompt yas/x-prompt yas/no-prompt))
 
 (require 'react-snippets)
+
 
 ;; shell stuff from https://snarfed.org/why_i_run_shells_inside_emacs
 
@@ -416,9 +417,12 @@ the line, to capture multiline input. (This only has effect if
   (flet ((end-of-line () (goto-char (point-max))))
     ad-do-it))
 
-;; not sure why, but comint needs to be reloaded from the source (*not*
-;; compiled) elisp to make the above advise stick.
-;; (load "comint.el.gz")
+(require 'bash-completion)
+(bash-completion-setup)
+
+;; bash
+
+
 
 ;; movement
 (windmove-default-keybindings)
@@ -468,8 +472,6 @@ the line, to capture multiline input. (This only has effect if
 
 ;; stuff
 (prefer-coding-system 'utf-8)
-;;(set-default-font "-unknown-Inconsolata-normal-normal-normal-*-16-*-*-*-m-0-fontset-auto1")
-(set-default-font "-unknown-Inconsolata-normal-normal-normal-*-14-*-*-*-m-0-iso10646-1")
 
 (desktop-save-mode 1)
 (savehist-mode 1)
@@ -498,10 +500,7 @@ the line, to capture multiline input. (This only has effect if
 (recentf-mode 1)
 (setq recentf-max-saved-items 100) ;; just 20 is too recent
 
-;; Represent undo-history as an actual tree (visualize with C-x u)
-(setq undo-tree-mode-lighter "")
-(require 'undo-tree)
-(global-undo-tree-mode)
+
 
 ;; Offer to create parent directories if they do not exist
 ;; http://iqbalansari.github.io/blog/2014/12/07/automatically-create-parent-directories-on-visiting-a-new-file-in-emacs/
@@ -516,6 +515,53 @@ the line, to capture multiline input. (This only has effect if
 (global-set-key "\C-x\C-b" 'buffer-menu)       ; CxCb puts point on buffer list
 ;; (global-set-key (kbd "C-M-<backspace>") 'backward-kill-sexp)
 
+
+;; custom
+
+(custom-set-variables
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(blink-cursor-mode nil)
+ '(cider-cljs-lein-repl
+   "(do (require 'cljs.repl.node) (cemerick.piggieback/cljs-repl (cljs.repl.node/repl-env)))")
+ '(column-number-mode t)
+ '(comint-buffer-maximum-size 20000)
+ '(comint-completion-addsuffix t)
+ '(comint-get-old-input (lambda nil "") t)
+ '(comint-input-ignoredups t)
+ '(comint-input-ring-size 5000)
+ '(comint-move-point-for-output nil)
+ '(comint-prompt-read-only nil)
+ '(comint-scroll-show-maximum-output t)
+ '(comint-scroll-to-bottom-on-input t)
+ '(company-dabbrev-downcase nil)
+ '(compilation-message-face (quote default))
+ '(coverlay:base-path "/home/cmewes/projects/betty/betty_ordercapture_ui/master/")
+ '(coverlay:tested-line-background-color "#eeffdd")
+ '(coverlay:untested-line-background-color "#ffeedd")
+ '(custom-enabled-themes (quote (base16-atelierdune-light)))
+ '(custom-safe-themes
+   (quote
+    ("b83c1e19c912f0d84a543b37367242f8a3ad2ed3aec80f5363d0d82ba4621e7d" "75c0b9f9f90d95ac03f8647c75a91ec68437c12ff598e2abb22418cd4b255af0" "ee3b22b48b269b83aa385b3915d88a9bf4f18e82bb52e20211c7574381a4029a" "a922c743710bb5d7c14995345549141f01211ff5089057dc718a5a33104c3fd1" "d677ef584c6dfc0697901a44b885cc18e206f05114c8a3b7fde674fce6180879" "a8245b7cc985a0610d71f9852e9f2767ad1b852c2bdea6f4aadc12cce9c4d6d0" "5cc9df26a180d14a6c5fc47df24d05305636c80030a85cf65e31f420d7836688" "90b1aeef48eb5498b58f7085a54b5d2c9efef2bb98d71d85e77427ce37aec223" "1a2b131a7844bad234832963d565097efc88111b196fb75757885c159c5f8137" "b6d649c9f972b491686e7fa634535653e6222c1faca1ab71b3117854470a79ae" "64da9a8dba17dcf210420875eba3f1a5ea6272217dc403706e4e2c985aa537fa" "232f715279fc131ed4facf6a517b84d23dca145fcc0e09c5e0f90eb534e1680f" "6ae93caf30ad7eef728589a4d7b7befadecade71d78b904a64a0480608a7b61e" "7c1e99f9d46c397b3fd08c7fdd44fe47c4778ab69cc22c344f404204eb471baa" "3fb38c0c32f0b8ea93170be4d33631c607c60c709a546cb6199659e6308aedf7" "8ffaf449297bd9a08517f4b03a4df9dbf3e347652746cefceb3ee57c8e584b9f" "36012edb5bc7070a17e989984e0ecc1d1e9c94326bdd0fbd76c2a45ebfe7da54" "3a3917dbcc6571ef3942c2bf4c4240f70b5c4bc0b28192be6d3f9acd83607a24" "0b6645497e51d80eda1d337d6cabe31814d6c381e69491931a688836c16137ed" "b2028956188cf668e27a130c027e7f240c24c705c1517108b98a9645644711d9" default)))
+ '(eclim-eclipse-dirs (quote ("~/opt/eclipse")))
+ '(eclim-executable "~/opt/eclipse/eclimd")
+ '(flowtype:base-path
+   "/home/cmewes/projects/betty/betty_ordercapture_ui/master/ui/")
+ '(flowtype:uncovered-type-background-color "#ff9d9d")
+ '(flycheck-eslintrc "/usr/local/.eslintrc")
+ '(haskell-mode-hook (quote (turn-on-haskell-indentation)))
+ '(magit-diff-use-overlays nil)
+ '(mocha-command "jest")
+ '(mocha-which-node
+   "/home/cmewes/projects/betty/betty_ordercapture_ui/master/ui/docker-gulp.sh")
+ '(protect-buffer-bury-p nil)
+ '(show-paren-mode t)
+ '(sp-base-key-bindings (quote sp))
+ '(sp-override-key-bindings (quote (("M-<backspace>") ("C-M-<backspace>"))))
+ '(tool-bar-mode nil)
+ '(tramp-default-method "ssh"))
 
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
