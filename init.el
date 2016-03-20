@@ -480,8 +480,6 @@ the line, to capture multiline input. (This only has effect if
 
 (setq inhibit-startup-message t)               ; No message at startup
 (setq shell-file-name "/bin/bash")             ; Set Shell for M-| command
-(column-number-mode t)                         ; Show column number in mode-line
-(blink-cursor-mode 0)                          ; No blinking cursor
 (defalias 'yes-or-no-p 'y-or-n-p)              ; y/n instead of yes/no
 (setq confirm-kill-emacs 'yes-or-no-p)         ; Confirm quit
 (setq tab-width 4)                             ; Length of tab is 4 SPC
@@ -523,7 +521,7 @@ the line, to capture multiline input. (This only has effect if
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(blink-cursor-mode nil)
+ '(blink-cursor-mode 0)
  '(cider-cljs-lein-repl
    "(do (require 'cljs.repl.node) (cemerick.piggieback/cljs-repl (cljs.repl.node/repl-env)))")
  '(column-number-mode t)
@@ -544,7 +542,7 @@ the line, to capture multiline input. (This only has effect if
  '(custom-enabled-themes (quote (base16-atelierdune-light)))
  '(custom-safe-themes
    (quote
-    ("b83c1e19c912f0d84a543b37367242f8a3ad2ed3aec80f5363d0d82ba4621e7d" "75c0b9f9f90d95ac03f8647c75a91ec68437c12ff598e2abb22418cd4b255af0" "ee3b22b48b269b83aa385b3915d88a9bf4f18e82bb52e20211c7574381a4029a" "a922c743710bb5d7c14995345549141f01211ff5089057dc718a5a33104c3fd1" "d677ef584c6dfc0697901a44b885cc18e206f05114c8a3b7fde674fce6180879" "a8245b7cc985a0610d71f9852e9f2767ad1b852c2bdea6f4aadc12cce9c4d6d0" "5cc9df26a180d14a6c5fc47df24d05305636c80030a85cf65e31f420d7836688" "90b1aeef48eb5498b58f7085a54b5d2c9efef2bb98d71d85e77427ce37aec223" "1a2b131a7844bad234832963d565097efc88111b196fb75757885c159c5f8137" "b6d649c9f972b491686e7fa634535653e6222c1faca1ab71b3117854470a79ae" "64da9a8dba17dcf210420875eba3f1a5ea6272217dc403706e4e2c985aa537fa" "232f715279fc131ed4facf6a517b84d23dca145fcc0e09c5e0f90eb534e1680f" "6ae93caf30ad7eef728589a4d7b7befadecade71d78b904a64a0480608a7b61e" "7c1e99f9d46c397b3fd08c7fdd44fe47c4778ab69cc22c344f404204eb471baa" "3fb38c0c32f0b8ea93170be4d33631c607c60c709a546cb6199659e6308aedf7" "8ffaf449297bd9a08517f4b03a4df9dbf3e347652746cefceb3ee57c8e584b9f" "36012edb5bc7070a17e989984e0ecc1d1e9c94326bdd0fbd76c2a45ebfe7da54" "3a3917dbcc6571ef3942c2bf4c4240f70b5c4bc0b28192be6d3f9acd83607a24" "0b6645497e51d80eda1d337d6cabe31814d6c381e69491931a688836c16137ed" "b2028956188cf668e27a130c027e7f240c24c705c1517108b98a9645644711d9" default)))
+    ("ee3b22b48b269b83aa385b3915d88a9bf4f18e82bb52e20211c7574381a4029a" "75c0b9f9f90d95ac03f8647c75a91ec68437c12ff598e2abb22418cd4b255af0" default)))
  '(eclim-eclipse-dirs (quote ("~/opt/eclipse")))
  '(eclim-executable "~/opt/eclipse/eclimd")
  '(flowtype:base-path
@@ -568,6 +566,11 @@ the line, to capture multiline input. (This only has effect if
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- )
+ '(fringe ((t (:background "#e8e4cf"))))
+ '(linum ((t (:background "#e8e4cf" :foreground "#a6a28c"))))
+ '(mode-line ((t (:box t :foreground "#999580" :background "#6e6b5e"))))
+ '(mode-line-buffer-id ((t (:foreground "#b854d4" :background "#a6a28c"))))
+ '(mode-line-highlight ((t :foreground "#b854d4" :background "#a6a28c" :box t :weight bold)))
+ '(mode-line-inactive ((t (:background "#999580" :foreground "#6e6b5e" :box t)))))
 
 ;;; init.el ends here
