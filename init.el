@@ -24,6 +24,7 @@
 	async                 ;;Asynchronous processing in Emacs
 	auto-complete         ;;Auto Completion for GNU Emacs
         base16-theme          ;;Collection of themes built on combinations of 16 base colors
+	bash-completion	      ;;BASH completion for the shell buffer
 	buffer-move           ;;easily swap buffers
         centered-cursor-mode  ;;cursor stays vertically centered
 	cider                 ;;Clojure Interactive Development Environment that Rocks
@@ -37,7 +38,7 @@
 	dash                  ;;A modern list library for Emacs
 	dash-functional       ;;Collection of useful combinators for Emacs Lisp
 	edn                   ;;Support for reading and writing the edn data format from elisp
-	emacs-eclim           ;;An interface to the Eclipse IDE.
+	;; emacs-eclim           ;;An interface to the Eclipse IDE.
 	epl                   ;;Emacs Package Library
 	exec-path-from-shell  ;;Get environment variables such as $PATH from the shell
 	f	              ;;Modern API for working with files and directories
@@ -109,16 +110,16 @@
 
 ;;; Packaged things
 
-(setq calendar-latitude 53.551086)
-(setq calendar-longitude 9.993682)
+;; (setq calendar-latitude 53.551086)
+;; (setq calendar-longitude 9.993682)
 
-(and (require 'color-theme)
-     (require 'theme-changer)
-     (change-theme 'base16-atelierdune-light 'base16-atelierdune-dark))
+;; (and (require 'color-theme)
+;;      (require 'theme-changer)
+;;      (change-theme 'base16-atelierdune-light 'base16-atelierdune-dark))
 
 ;;presentation
 (require 'framesize)
-(set-default-font "-unknown-Inconsolata-normal-normal-normal-*-14-*-*-*-m-0-iso10646-1")
+;; (set-default-font "-unknown-Inconsolata-normal-normal-normal-*-14-*-*-*-m-0-iso10646-1")
 
 ;; eldoc
 (add-hook 'emacs-lisp-mode-hook 'turn-on-eldoc-mode)
@@ -229,7 +230,7 @@
 (add-hook 'js2-mode-hook (lambda () (jasminejs-mode)))
 (add-hook 'jasminejs-mode-hook (lambda () (jasminejs-add-snippets-to-yas-snippet-dirs)))
 
-(require 'mocha)
+;; (require 'mocha)
 
 ;; coverage in lcov format
 (require 'coverlay)
@@ -286,9 +287,9 @@ See URL `http://flowtype.org/'."
 (require 'flowtype-mode)
 (add-to-list 'magic-mode-alist '("/\\* @flow" . flowtype-mode))
 
-;; android-mode
-(require 'android-mode)
-(defcustom android-mode-sdk-dir "/opt/android" "Android.")
+;; ;; android-mode
+;; (require 'android-mode)
+;; (defcustom android-mode-sdk-dir "/opt/android" "Android.")
 
 ;; closure-template
 (require 'closure-template-html-mode)
@@ -314,9 +315,9 @@ See URL `http://flowtype.org/'."
 
 ;; eclim
 
-(require 'eclim)
-(global-eclim-mode)
-(require 'eclimd)
+;; (require 'eclim)
+;; (global-eclim-mode)
+;; (require 'eclimd)
 
 ;; add the emacs-eclim source
 ;; (require 'ac-emacs-eclim-source)
@@ -417,11 +418,10 @@ the line, to capture multiline input. (This only has effect if
   (flet ((end-of-line () (goto-char (point-max))))
     ad-do-it))
 
-(require 'bash-completion)
-(bash-completion-setup)
-
 ;; bash
 
+(require 'bash-completion)
+(bash-completion-setup)
 
 
 ;; movement
